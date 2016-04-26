@@ -117,7 +117,7 @@ func (queue *Queue) Delete() error {
 }
 
 // Put writes the payload into the input queue
-func (queue *Queue) Put(payload string) error {
+func (queue *Queue) Put(payload []byte) error {
 	p := &Package{CreatedAt: time.Now(), Payload: payload, Queue: queue}
 	lpush := queue.redisClient.LPush(queueInputKey(queue.Name), p.getString())
 	queue.incrRate(queueInputRateKey(queue.Name), 1)

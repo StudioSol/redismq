@@ -1,17 +1,17 @@
 package redismq
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/gob"
 	"fmt"
-	"log"
 	"time"
 )
 
 // Package provides headers and handling functions around payloads
 type Package struct {
-	Payload    string
+	Payload    []byte
 	CreatedAt  time.Time
-	Queue      interface{} `json:"-"`
+	Queue      *Queue      `json:"-"`
 	Consumer   *Consumer   `json:"-"`
 	Collection *[]*Package `json:"-"`
 	Acked      bool        `json:"-"`
@@ -21,7 +21,10 @@ type Package struct {
 
 func unmarshalPackage(input string, queue *Queue, consumer *Consumer) (*Package, error) {
 	p := &Package{Queue: queue, Consumer: consumer, Acked: false}
-	err := json.Unmarshal([]byte(input), p)
+
+	var dec = gob.NewDecoder(bytes.NewBuffer([]byte(input)))
+
+	err := dec.Decode(p)
 	if err != nil {
 		return nil, err
 	}
@@ -29,13 +32,14 @@ func unmarshalPackage(input string, queue *Queue, consumer *Consumer) (*Package,
 }
 
 func (pack *Package) getString() string {
-	json, err := json.Marshal(pack)
-	if err != nil {
-		log.Printf(" Queue failed to marshal content %s [%s]", pack, err.Error())
-		// TODO build sensible error handling
-		return ""
+	gob.Register(Package{})
+	gob.Register(Queue{})
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	if err := enc.Encode(*pack); err != nil {
+		panic(err)
 	}
-	return string(json)
+	return string(buffer.Bytes())
 }
 
 func (pack *Package) index() int {
