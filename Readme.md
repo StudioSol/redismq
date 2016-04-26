@@ -91,33 +91,9 @@ To remove a package from the queue you have to `Ack()` it:
 }
 ```
 
-### Buffered Queues
-
-When input speed is of the essence `BufferedQueues` will scratch that itch.
-They pipeline multiple puts into one fast operation. The only issue is that upon crashing or restart the packages in
-the buffer that haven't been written yet will be lost. So it's advised to wait one second before terminating your program to flush the buffer.
-
-The usage is as easy as it gets:
-```go
-	...
-	bufferSize := 100
-	testQueue := redismq.CreateBufferedQueue("localhost", "6379", "", 9, "clicks", bufferSize)
-	testQueue.Start()
-	...
-}
-```
-`Put()` and `Get()` stay exactly the same.
-I have found anything over 200 as `bufferSize` not to increase performance any further.
-
-To ensure that no packages are left in the buffer when you shut down your program you need to call
-`FlushBuffer()` which will tell the queue to flush the buffer and wait till it's empty.
-```go
-	testQueue.FlushBuffer()
-```
-
 ### Multi Get
 
-Like `BufferedQueues` for `Get()` `MultiGet()` speeds up the fetching of messages. The good news it comes without the buffer loss issues.
+Like `MultiGet()` speeds up the fetching of messages. The good news it comes without the buffer loss issues.
 
 Usage is pretty straight forward with the only difference being the `MultiAck()`:
 ```go
@@ -171,7 +147,7 @@ As you can see there is also a command to get messages from the `Failed Queue`.
 
 ## How fast is it
 
-Even though the original implementation wasn't aiming for high speeds the addition of `BufferedQueues` and `MultiGet`
+Even though the original implementation wasn't aiming for high speeds the addition of `MultiGet`
 make it go something like [this](http://www.youtube.com/watch?feature=player_detailpage&v=sGBMSLvggqA#t=58).
 
 All of the following benchmarks were conducted on a MacBook Retina with a 2.4 GHz i7.
@@ -183,7 +159,7 @@ InputRate:	12183
 WorkRate:	12397
 ```
 
-Single Publisher, Two Consumers using `BufferedQueues` and `MultiGet`
+Single Publisher, Two Consumers using `MultiGet`
 ```
 InputRate:	46994
 WorkRate:	25000
@@ -191,7 +167,7 @@ WorkRate:	25000
 
 And yes that is a persistent message queue that can move over 70k messages per second.
 
-If you want to find out for yourself checkout the `example` folder. The `load.go` or `buffered_queue.go`
+If you want to find out for yourself checkout the `example` folder. The `load.go`
 will start a web server that will display performance stats under `http://localhost:9999/stats`.
 
 ## How persistent is it
